@@ -1,0 +1,139 @@
+blog Link:
+https://www.matthewhoelter.com/2022/04/02/how-to-scroll-to-top-on-route-change-with-react-router-dom-v6.html
+
+
+
+
+
+How to Scroll to Top on Route Change With React Router Dom v6
+While building a new multi-page website with React and React Router Dom v6, I found it incredibly difficult to figure out how to load new route changes at the top of the new page. A number of the solutions online are for v4 or v5 and no longer work.
+
+After patching together a few different solutions from around the web, I wanted to publish the solution that works for me.
+
+Covered in this guide:
+Setting up React Router Dom v6 helper to scroll to top of pages
+Enable both animated scrolling and instant scrolling
+Let’s begin:
+
+1. How My Router Is Setup
+First step is to explain how I setup my Router. This will be useful for the next step.
+
+First in my index.js file I have setup as follows:
+
+index.js
+import React from "react";
+import * as ReactDOM from "react-dom/client";
+import { BrowserRouter as Router } from "react-router-dom";
+import reportWebVitals from "./reportWebVitals";
+
+import App from "./App";
+
+// This is the magic helper I'll explain shortly
+import ScrollToTop from "./helpers/ScrollToTop";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <Router>
+    <ScrollToTop />
+    <App />
+  </Router>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+And my App.js:
+
+App.js
+import * as React from "react";
+import { Routes, Route } from "react-router-dom";
+
+import Layout from "./pages/Layout"; // Optional, but useful
+import Home from "./pages/Home";
+import About from "./pages/About";
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="*" element={<Home />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export default App;
+Layout.js is not necessary, but allows you to render components across every route. It’s very helpful when adding global elements such as navigation or footers that you want to appear on every page. If you’re familiar with layouts in Rails, they’ve very similar and quite useful:
+
+pages/Layout.js
+import { Outlet } from "react-router-dom";
+
+import Nav from "../components/Nav";
+import Footer from "../components/Footer";
+
+// If you use CSS/SCSS vs. styled components
+import "../scss/main.scss";
+
+function Layout() {
+
+  return (
+    <div>
+      <Nav />
+
+      {/* An <Outlet> renders whatever child route is currently active in App.js */}
+      <Outlet />
+
+      <Footer />
+    </div>
+  );
+}
+
+export default Layout;
+Learn more about Outlets and React Router Dom here.
+
+Okay, with that setup, let’s dig into each part.
+
+2. Setup <ScrollToTop />
+So if you noticed in my index.js, the magic component that will allow us to have new pages load at the top on route changes is in <ScrollToTop />. Go ahead and create a new file for it somewhere in your project that makes sense. I normally put mine under helpers/ScrollToTop.js. Here’s the contents:
+
+helpers/ScrollToTop.js
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+export default function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // "document.documentElement.scrollTo" is the magic for React Router Dom v6
+    document.documentElement.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant", // Optional if you want to skip the scrolling animation
+    });
+  }, [pathname]);
+
+  return null;
+}
+The main things that occur in this file is that every time the url path (i.e. route) changes, we scroll to the top of the page. The behavior: "instant" option let’s us jump to the top without any animation to make it appear that we always start at the top of the new page.
+
+If you refer back to index.js, by including this above the <App /> component, we ensure that we always will load at the top of new pages.
+
+That’s it! Now your new routes will load instantly. This is the method I use for linking for reference:
+
+LinkExample.js
+<Link to="/about">
+    About Us
+</Link>
+Important Step for Netlify
+If you are using React Router Dom with a project you’re hosting on Netlify, there’s an extra step that need to be taking to ensure that direct linking works.
+
+In your /public folder, create a new file named _redirects and add the following. Otherwise direct linking to a sub-route will 404:
+
+/public/_redirects
+/* /index.html 200
+You can read more about this issue here.
+
+Happy development! 💻
